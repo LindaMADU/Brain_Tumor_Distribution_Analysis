@@ -1,0 +1,81 @@
+Measures and Columns Formula
+
+
+Avg Intake py = 
+VAR _StartYear =
+    YEAR ( MIN ( 'Brain Tumor Data'[Date of Diagnosis] ) )
+VAR _EndYear =
+    YEAR ( MAX ( 'Brain Tumor Data'[Date of Diagnosis] ) )
+VAR _NumYears = _EndYear - _StartYear + 1
+
+VAR _TotalPatients =
+    CALCULATE ( COUNTROWS ( 'Brain Tumor Data' ) )
+
+RETURN
+    DIVIDE ( _TotalPatients, _NumYears )
+
+
+vs Avg Intake py = 
+VAR _CurrentIntake =
+    [Avg Intake py]
+VAR _OverallIntake =
+    CALCULATE (
+        [Avg Intake py],
+        ALL ( 'Brain Tumor Data' )
+    )
+VAR _Diff = _CurrentIntake - _OverallIntake
+
+RETURN
+    SWITCH (
+        TRUE(),
+        _Diff > 0, UNICHAR(9650) & " " & FORMAT(_CurrentIntake, "0.0"),
+        _Diff < 0, UNICHAR(9660) & " " & FORMAT(_CurrentIntake, "0.0"),
+        FORMAT(_CurrentIntake, "0.0")
+    )
+
+
+Most Affected Group = 
+VAR AgeGroupCounts =
+    SUMMARIZE(
+        'Brain Tumor Data',
+        'Brain Tumor Data'[Age Group],
+        "PatientCount", DISTINCTCOUNT('Brain Tumor Data'[Patient ID])
+    )
+VAR TopGroup =
+    TOPN(1, AgeGroupCounts, [PatientCount], DESC)
+RETURN
+MAXX(TopGroup, 'Brain Tumor Data'[Age Group])
+
+
+Age Group = 
+VAR AgeValue = 'Brain Tumor Data'[Age]
+RETURN
+SWITCH(
+    TRUE(),
+    AgeValue >= 0 && AgeValue <= 10, "0-10",
+    AgeValue >= 11 && AgeValue <= 20, "11-20",
+    AgeValue >= 21 && AgeValue <= 30, "21-30",
+    AgeValue >= 31 && AgeValue <= 40, "31-40",
+    AgeValue >= 41 && AgeValue <= 50, "41-50",
+    AgeValue >= 51 && AgeValue <= 60, "51-60",
+    AgeValue > 60, "60+",
+    "Unknown"
+)
+
+
+MABR (Most Affected Brain Region): = 
+VAR TotalPatients = COUNTROWS('Brain Tumor Data')
+VAR RegionCounts =
+    SUMMARIZE(
+        'Brain Tumor Data',
+        'Brain Tumor Data'[Affected Brain Region],
+        "Cnt", COUNTROWS('Brain Tumor Data')
+    )
+VAR TopRegion = TOPN(1, RegionCounts, [Cnt], DESC)
+VAR RegionName = MAXX(TopRegion, 'Brain Tumor Data'[Affected Brain Region])
+VAR RegionCount = MAXX(TopRegion, [Cnt])
+
+RETURN
+RegionName & " (" & FORMAT(DIVIDE(RegionCount, TotalPatients), "0%") & ")"
+
+
